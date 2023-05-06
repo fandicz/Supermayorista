@@ -80,7 +80,7 @@ IS
       Min_Can_Dife,
       -- Fin () DESCUDERO
       costo,
-      ROUND(DECODE(por_incre,0,art_pvta*embalaje_frac,(art_pvta*embalaje_frac)+(art_pvta*embalaje_frac)*(por_incre/100))) AS valor,
+      ROUND(DECODE(por_incre,0,costo_base_pvp*embalaje_frac,(costo_base_pvp*embalaje_frac)+(costo_base_pvp*embalaje_frac)*(por_incre/100))) AS valor,
       proveedor,
       nombreproveedor,
       estado,
@@ -91,8 +91,8 @@ IS
           THEN TRUNC(saldo / val_frac)
         ELSE TRUNC(saldo * val_frac)
       END AS saldo,
-      cantidad_desde,
-      ROUND(DECODE(por_incre,0,art_pvta*embalaje_frac,(art_pvta*embalaje_frac)+(art_pvta*embalaje_frac)*(por_incre/100))) AS valor_desde
+      cantidad_desde,      
+      ROUND(DECODE(por_incre,0,costo_base_pvp*embalaje_frac,(costo_base_pvp*embalaje_frac)+(costo_base_pvp*embalaje_frac)*(por_incre/100))) AS valor_desde
     FROM (
       SELECT
         v.bod_codi,
@@ -105,7 +105,7 @@ IS
         CASE
           WHEN f.art_codi_frac IS NULL
             THEN 1
-          ELSE a.emb_comp
+          ELSE f.val_frac
         END AS embalaje_frac,
         a.pum_unid AS und_pum,
         a.pum_cant AS pum,
@@ -117,6 +117,7 @@ IS
         v.Min_Can_Dife As Min_Can_Dife,
         -- Fin () DESCUDERO
         COALESCE(tva.por_incr, tvs.por_incr, tv.inc_prec, 0) AS por_incre,
+        NVL(v.costo_base_pvp,0) AS costo_base_pvp,
         a.nit_codi AS proveedor,
         DECODE(n.nit_tipo,'NIT',n.nit_desc,n.nit_nom1||' '||n.nit_nom2||' '||n.nit_ape1||' '||n.nit_ape2) nombreproveedor,
         DECODE(a.est_arti, 'A', 'ACTIVO', 'I', 'INACTIVO', 'DESCONTI') AS estado,
@@ -155,9 +156,9 @@ IS
         NVL(f.art_codi, v.cod_barr) = mt.art_codi AND
         mt.bod_codi  = v.bod_codi
       LEFT JOIN tip_vta_arti tva ON
-        NVL(f.art_codi, v.cod_barr) = tva.art_codi AND
-        pb.tip_codi = tva.tip_codi
-        and pb.bod_codi = tva.bod_codi
+        v.cod_barr = tva.art_codi AND
+        pb.tip_codi = tva.tip_codi AND 
+        tva.bod_codi = v.bod_codi
       LEFT JOIN tip_vta_sgto tvs ON
         tva.art_codi IS NULL AND
         tvs.tip_codi  = pb.tip_codi AND
@@ -217,28 +218,7 @@ BEGIN
         WHEN r.costo < 1 AND r.costo > 0 THEN '0'
         ELSE ''
       END||to_char(r.costo)||',');
-      -- Inicio () DESCUDERO
-      -- precio de venta
-      PKUtilidades_POS.ProPrecioArticulo(p_bod_codi        -- bodega
-                                         ,r.Codigo_Barras  -- artÃ­culo
-                                         ,1                -- cantidad de artÃ­culo
-                                         ,r.Tip_Codi       -- tipo de venta
-                                         ,'GEN'            -- programa que llama
-                                         ,va_vcAplicaDesde -- (S/N) indica si debe mostrar valor desde
-                                         ,va_nuValorVenta  -- valor del artÃ­culo
-                                         );
-
-      -- precio desde
-      PKUtilidades_POS.ProPrecioArticulo(p_bod_codi        -- bodega
-                                         ,r.Codigo_Barras  -- artÃ­culo
-                                         ,r.Min_Can_Dife   -- cantidad de artÃ­culo
-                                         ,r.Tip_Codi       -- tipo de venta
-                                         ,'GEN'            -- programa que llama
-                                         ,va_vcAplicaDesde -- (S/N) indica si debe mostrar valor desde
-                                         ,va_nuValorDesde  -- valor del artÃ­culo
-                                         );
-      -- Fin () DESCUDERO
-     json := CONCAT(json, '"valor":'||to_clob(Nvl(va_nuValorVenta,0))||','); -- LÃ­nea de modificaciÃ³n () DESCUDERO -- r.valor
+     json := CONCAT(json, '"valor":'||to_clob(r.valor)||',');
      json := CONCAT(json, '"proveedor":"'||r.proveedor||'",');
      json := CONCAT(json, '"nombreprovneedor":"'||REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(BOTH '"' FROM r.nombreproveedor),CHR(10),''),CHR(13),''),CHR(9),''),'\','\\\\'),'"','\"')||'",');
      json := CONCAT(json, '"estado":"'||r.estado||'",');
@@ -247,7 +227,7 @@ BEGIN
      json := CONCAT(json, '"ipconsumo":'||to_clob(r.ipconsumo)||',');
      json := CONCAT(json, '"saldo":'||to_clob(r.saldo)||',');
      json := CONCAT(json, '"cantidad_desde":'||to_clob(r.cantidad_desde)||',');
-     json := CONCAT(json, '"valor_desde":'||to_clob(Nvl(va_nuValorDesde,0))||'}'); -- LÃ­nea de modificaciÃ³n () DESCUDERO -- r.valor_desde
+     json := CONCAT(json, '"valor_desde":'||to_clob(r.valor_desde)||'}');
   END LOOP;
   IF NOT c_clobs_con_registros THEN
       RAISE NO_DATA_FOUND;
@@ -256,7 +236,7 @@ BEGIN
   RETURN json;
 EXCEPTION
   WHEN NO_DATA_FOUND THEN
-    error := 'No existen artÃ­culos para la venta o la tienda no esta parametrizada';
+    error := 'No existen artículos para la venta o la tienda no esta parametrizada';
     json := '{"error": "'||error||'",';
     json := json || '"cod_bodi": "'||p_bod_codi||'"}';
     RETURN json;
