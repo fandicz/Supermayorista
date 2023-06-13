@@ -212,7 +212,11 @@ IS
         dv.VAL_VENT - (dv.IPO_VALO*dv.CAN_ARTI) - ((dv.VAL_VENT - (dv.IPO_VALO*dv.CAN_ARTI))/(1+(dv.IVA_PORC/100))) AS IVA_VALO,
         dv.IVA_PORC,
         dv.IPO_VALO * dv.CAN_ARTI AS IPO_VALO_TOT,
-        ((dv.IPO_VALO*dv.CAN_ARTI)/((dv.VAL_VENT - (dv.IPO_VALO*dv.CAN_ARTI))/(1+(dv.IVA_PORC/100))))*100 AS IPO_PORC,
+        CASE 
+          WHEN dv.VAL_VENT <= 0
+            THEN 0
+          ELSE ((dv.IPO_VALO*dv.CAN_ARTI)/((dv.VAL_VENT - (dv.IPO_VALO*dv.CAN_ARTI))/(1+(dv.IVA_PORC/100))))*100 
+        END AS IPO_PORC,
         dv.VAL_DCTO,        
         dv.COD_BARR,
         NVL(f.ART_CODI_FRAC,ar.ART_CODI) AS ART_CODI,
