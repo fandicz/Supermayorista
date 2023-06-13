@@ -24,7 +24,7 @@ o    o               ooo.    o         o   o         8
 
 /*=====  End of Section comment block  ======*/
 
-CREATE OR REPLACE PROCEDURE FAC_XML_ARCHIVO (
+CREATE OR REPLACE PROCEDURE ADMIN.FAC_XML_ARCHIVO (
   TIPO_DOCUMENTO NUMBER,
   FECHA_INICIO DATE DEFAULT NULL, 
   FECHA_FIN DATE DEFAULT NULL,
@@ -66,7 +66,7 @@ IS
      * En este primera parte se hacen las consultas para obtener los datos necesarios
      * desde la base de datos transaccional en ORACLE del sistema SI3000.
      *
-     * Las consultas se dividen dentro de sentencias WITH según la tabla origen de los datos y/o su relación logica 
+     * Las consultas se dividen dentro de sentencias WITH según la tabla origen de los datos y/o su relaciÃ³n logica 
      * con otras tablas, teniendo en cuenta ademas el rendimiento de las consultas.
      *
      * Por lo anterior se hacen primero las consultas desde las tablas de menor nivel de detalle (ej: ENC_VENT), se 
@@ -232,7 +232,7 @@ IS
         dv.NRO_RESO = ev.NRO_RESO
       LEFT JOIN ART_FRAC f ON 
         dv.COD_BARR = f.ART_CODI_FRAC
-      INNER JOIN MAE_ARTI ar ON
+      INNER JOIN MAE_ARTI ar ON         
         NVL(f.ART_CODI, dv.COD_BARR) = ar.ART_CODI
       INNER JOIN MAE_UNID mu ON 
         dv.UNI_CODI = mu.UNI_CODI
@@ -270,7 +270,7 @@ IS
       
     ),
     /*=================================================
-    =            Generación de objetos XML            =
+    =            GeneraciÃ³n de objetos XML            =
     =================================================*/
     
     /**
@@ -289,7 +289,7 @@ IS
      * según la factura o nota a la que pertenezcan.
      *
      * Para una descripción completa del significado, dominio y obligatoriedad o dependencia de cada uno de los elementos 
-     * XML, se recomienda remitirse al archivo "Factura Electr¢nica Colombia - Insumo Carvajal V4-3.xlsx", el cual contiente 
+     * XML, se recomienda remitirse al archivo "Factura Electrónica Colombia - Insumo Carvajal V4-3.xlsx", el cual contiente 
      * la documentación completa de la estructura del formato de facturación electrónica aceptado por la DIAN
      *
      * Nota: Los valores [SV] y [NA] en algunos de los elementos XML son la abreviación correspondiente de "Sin valor" y "No aplica", segun sea el caso,
@@ -320,7 +320,8 @@ IS
             fe.COD_CLTE AS "ENC_3",
             'UBL 2.1' AS "ENC_4",
             DECODE(fe.EVE_CODI, 0, 'DIAN 2.1: Factura Electrónica de Venta', 21, 'DIAN 2.1: Nota Crédito de Factura Electrónica de Venta') AS "ENC_5",
-            DECODE(fe.EVE_CODI, 0, fe.PRE_RESO||fe.TKT_NMRO, 21, fe.TKT_NMRO) AS "ENC_6",            
+            DECODE(fe.EVE_CODI, 0, fe.PRE_RESO||fe.TKT_NMRO, 21, fe.TKT_NMRO) AS "ENC_6",
+            --'2022-03-24' AS "ENC_7",
             fe.FEC_OPER AS "ENC_7",
             fe.TKT_HORA || ':00-05:00' AS "ENC_8", /* Se concatena el texto correspondiente a la zona horaria ya que asi lo requiere el formato XML */            
             DECODE(fe.EVE_CODI, '0', '01', '21', '91') AS "ENC_9",
@@ -429,14 +430,14 @@ IS
       FROM FACT_ENC fe
     ),
     /*================================================================================================================
-    =            Sección ADQ: Información del adquiriente (Nombre, NIT o cédula, datos de dirección, etc)            =
+    =            SecciÃ³n ADQ: InformaciÃ³n del adquiriente (Nombre, NIT o cÃ©dula, datos de direcciÃ³n, etc)            =
     ==================================================================================================================*/ 
     /*----------  Subsecciones ADQ  ----------*/
     /**
      *
-     * TCR: Información tributaria, aduanera y cambiaria del adquiriente
-     * ILA: Información legal del adquiriente
-     * DFA: Datos de dirección fiscal del adquiriente
+     * TCR: InformaciÃ³n tributaria, aduanera y cambiaria del adquiriente
+     * ILA: InformaciÃ³n legal del adquiriente
+     * DFA: Datos de direcciÃ³n fiscal del adquiriente
      * CDA: Datos de contactos del adquiriente
      * GTA: Detalles tributarios del adquiriente
      *
@@ -468,7 +469,7 @@ IS
                 THEN '31'
               WHEN fe.IDE_TIPO = 'Pasaporte'
                 THEN '41'
-              WHEN fe.IDE_TIPO = 'Documento de identificación extranjero'
+              WHEN fe.IDE_TIPO = 'Documento de identificaciónn extranjero'
                 THEN '42'
               WHEN fe.IDE_TIPO = 'Nit de otro país'
                 THEn '50'
@@ -603,7 +604,7 @@ IS
       FROM FACT_ENC fe
     ),
     /*==========================================================================================================================
-    =            Sección TOT: Importes totales (Suma de totales de valor bruto, impuestos, descuentos, cargos, etc)            =
+    =            SecciÃ³n TOT: Importes totales (Suma de totales de valor bruto, impuestos, descuentos, cargos, etc)            =
     ============================================================================================================================*/
     TOT AS (
       SELECT
@@ -651,7 +652,7 @@ IS
       ) fd1
     ),
     /*=========================================================================================================
-    =            Sección TIM: Total de impuestos (Totales por cada impuesto aplicado a la factura)            =
+    =            SecciÃ³n TIM: Total de impuestos (Totales por cada impuesto aplicado a la factura)            =
     ===========================================================================================================*/
     /*----------  Subsecciones TIM  ----------*/
     /**
@@ -705,7 +706,7 @@ IS
                   SUM(fd.VALOR_IMPUESTO) AS VALOR_IMPUESTO,
                   fd.PORC_IMPUESTO
                 FROM FACT_DET_IMPUESTOS fd 
-                WHERE fd.TIPO_IMPUESTO != 'IC' /*En esta implementación específica para Supermayorista, 
+                WHERE fd.TIPO_IMPUESTO != 'IC' /*En esta implementaciÃ³n especÃ­fica para Supermayorista, 
                 la empresa requiere que no se discrimine el impuesto al consumo*/
                 GROUP BY 
                   fd.BOD_CODI,
@@ -755,7 +756,7 @@ IS
     ),
     /*==============================================================================================
     =            Secciones de DRF a CTS: Secciones con datos adicionales a nivel de factura o nota =
-    =            (ej. resolución de factura, medio de pago y referencia a documento origen)        =
+    =            (ej. resoluciÃ³n de factura, medio de pago y referencia a documento origen)        =
     ================================================================================================*/
     DRF_CTS AS (
       SELECT
@@ -787,7 +788,7 @@ IS
                     DECODE(cm.EVE_CODI_ORIG, 0, cm.PRE_RESO_ORIG||cm.TKT_ORIG, cm.TKT_ORIG) AS "REF_2",
                     cm.FEC_OPER_ORIG AS "REF_3"
                   ),
-                  XMLELEMENT("REF_4", DECODE(fe.EVE_CODI, 21, fe.CUFE, 0,''))
+                  XMLELEMENT("REF_4", DECODE(fe.EVE_CODI, 21, fe.CUFE,0,''))
                 )
               )
             FROM(
@@ -852,13 +853,13 @@ IS
       FROM FACT_ENC fe
     ),
     /*==================================================================================================================================================================
-    =            Sección ITE: Datos a nivel de items o lineas del documento (ej. artículo, cantidad, unidades de medida, totales de valor e impuestos, etc)            =
+    =            SecciÃ³n ITE: Datos a nivel de items o lineas del documento (ej. artÃ­culo, cantidad, unidades de medida, totales de valor e impuestos, etc)            =
     ====================================================================================================================================================================*/
     /*----------  Subsecciones ITE  ----------*/
     /**
      *
      * TII: Total de impuestos a nivel de cada nombre de tributo aplicado a cada item o linea de la factura
-     *    IIM: Total de impuestos a nivel de cada nombre de tributo y tarifa (%) apĺicado a cada item o linea de la factura
+     *    IIM: Total de impuestos a nivel de cada nombre de tributo y tarifa (%) aplicado a cada item o linea de la factura
      *
      */
     
@@ -1032,7 +1033,7 @@ IS
      * Luego de generados los objetos XML de cada sección, estos se concatenan mediante un NATURAL JOIN 
      * usando los campos llaves señalados anteriormente.
      * Finalmente se serializa el objeto XML resultante y se genera un campo tipo texto que contiene el archivo
-     * XML de cada registro/factura/nota, el cual luego servirá para transformar su contenido en un campó tipo CLOB que pueda ser
+     * XML de cada registro/factura/nota, el cual luego servirá para transformar su contenido en un campÃ³ tipo CLOB que pueda ser
      * escrito en el sistema de archivos del sistema operativo.
      *
      */
@@ -1046,8 +1047,8 @@ IS
       XMLSERIALIZE( document
         XMLCONCAT(
           XMLROOT(
-            /* Dependiendo de si el documento es una factura o una nota, la cabecera o raiz del documento XML se genera al final según 
-            ese parámetro */            
+            /* Dependiendo de si el documento es una factura o una nota, la cabecera o raiz del documento XML se genera al final segÃºn 
+            ese parÃ¡metro */            
             CASE
               WHEN EVE_CODI = '0' THEN 
                 XMLELEMENT("FACTURA",
@@ -1091,35 +1092,35 @@ IS
     NATURAL JOIN ITE;
 
 BEGIN
-  /* Validaciones de valores de parámetros del procedmiento */
+  /* Validaciones de valores de parÃ¡metros del procedmiento */
   IF FECHA_INICIO IS NULL AND FECHA_FIN IS NULL AND TIENDA IS NULL AND CAJA IS NULL AND NRO_DOCUMENTO IS NULL THEN 
     RAISE SIN_PARAMETROS;
   ELSIF (FECHA_INICIO IS NULL AND FECHA_FIN IS NOT NULL) OR (FECHA_INICIO IS NOT NULL AND FECHA_FIN IS NULL) THEN 
     RAISE PARAMETRO_FECHA_INCOMPLETO;
   END IF; 
-  /* Se inicia un ciclo en el cual en cada iteración se ejecuta la consulta dentro del cursor limitando el resultado 
-  al rango de filas de la página actual */    
+  /* Se inicia un ciclo en el cual en cada iteraciÃ³n se ejecuta la consulta dentro del cursor limitando el resultado 
+  al rango de filas de la pÃ¡gina actual */    
   LOOP
     FOR r_clob IN c_clobs (v_lim_inferior_query,v_lim_superior_query)
     LOOP
       c_clobs_con_registros := TRUE;
-      /* Se genera el nombre con el que se creará el archivo en el siguiente formato: tipo_documento_fechaemision_codigotienda_codigocaja.xml */      
+      /* Se genera el nombre con el que se crearÃ¡ el archivo en el siguiente formato: tipo_documento_fechaemision_codigotienda_codigocaja.xml */      
       SELECT 
-        DECODE(r_clob.EVE_CODI, 0, 'FC', 21, 'NC') ||r_clob.TKT_NMRO||TO_CHAR(r_clob.FEC_OPER,'YYYYMMDD')||'_'||r_clob.BOD_CODI||'_'||r_clob.CAJ_CODI||'.xml'        
+        DECODE(r_clob.EVE_CODI, 0, 'FC', 21, 'NC') ||r_clob.TKT_NMRO||TO_CHAR(r_clob.FEC_OPER,'YYYYMMDD')||'_'||r_clob.BOD_CODI||'_'||r_clob.CAJ_CODI||'.xml'
         INTO v_nombre_archivo
       FROM DUAL;
 
       DBMS_OUTPUT.PUT_LINE(v_nombre_archivo);
       Dbms_xslprocessor.CLOB2FILE(cl => r_clob.XML_CLOB, flocation => 'FACT_ELECTRONICA_PRD', fname => v_nombre_archivo);
     END LOOP;
-      /*En cada iteración se valida si el cursor contiene datos, ya que de no hacerlo indicaría que la iteración anterior fue la última 
-      en obtener datos detro de su rango de filas, por lo cual se entiende que se han generado todos archivos .xml segun los parámetros
+      /*En cada iteraciÃ³n se valida si el cursor contiene datos, ya que de no hacerlo indicarÃ­a que la iteraciÃ³n anterior fue la Ãºltima 
+      en obtener datos detro de su rango de filas, por lo cual se entiende que se han generado todos archivos .xml segun los parÃ¡metros
       ingresados y se da por terminado el ciclo*/
       IF NOT c_clobs_con_registros THEN
       RAISE NO_DATA_FOUND;
     END IF;
-    /* Se incrementa la variable que controla el número de la página o bloque de registros a procesar, y con base en ello se recaculan 
-    los limites inferior y superior del rango de dicha página */    
+    /* Se incrementa la variable que controla el nÃºmero de la pÃ¡gina o bloque de registros a procesar, y con base en ello se recaculan 
+    los limites inferior y superior del rango de dicha pÃ¡gina */    
     v_numero_pagina := v_numero_pagina+1;
     v_lim_inferior_query := v_lim_superior_query+1;
     v_lim_superior_query := v_lim_superior_query*v_numero_pagina;
@@ -1133,8 +1134,8 @@ EXCEPTION
   WHEN NO_DATA_FOUND THEN
     IF v_numero_pagina = 1 THEN 
       ERROR := 'No se encontraron resultados con los parámetros de búsqueda utilizados';      
-    /* Si la excepción NO_DATA_FOUND no se produce por errores en parámetros o falta de datos, ello indica que el ciclo de generación de los archivos XML 
-    terminó y se inicia el envio de estos al sistema CEN Financiero usando el job XML_CEN_JOB*/
+    /* Si la excepciÃ³n NO_DATA_FOUND no se produce por errores en parÃ¡metros o falta de datos, ello indica que el ciclo de generaciÃ³n de los archivos XML 
+    terminÃ³ y se inicia el envio de estos al sistema CEN Financiero usando el job XML_CEN_JOB*/
     ELSE
       DBMS_SCHEDULER.run_job (job_name => 'XML_CEN_PRD_JOB');
     END IF;
