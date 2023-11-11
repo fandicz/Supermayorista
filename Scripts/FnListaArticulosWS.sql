@@ -88,8 +88,8 @@ IS
       ipconsumo,
       CASE
         WHEN val_frac >=1
-          THEN TRUNC(saldo / val_frac) * NVL(inv_porc_disp, 100)
-        ELSE TRUNC(saldo * val_frac) * NVL(inv_porc_disp, 100)
+          THEN TRUNC((saldo / val_frac) * (NVL(inv_porc_disp, 100)/100))
+        ELSE TRUNC((saldo * val_frac) * (NVL(inv_porc_disp, 100)/100))
       END AS saldo,
       cantidad_desde,
       ROUND(DECODE(por_incre,0,art_pvta*embalaje_frac,(art_pvta*embalaje_frac)+(art_pvta*embalaje_frac)*(por_incre/100))) AS valor_desde
